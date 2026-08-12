@@ -1,14 +1,14 @@
 #include "orderbook/OrderBookManager.hpp"
 
-void OrderBookManager::addOrderBook(const char* symbol) {
+void OrderBookManager::addOrderBook(const std::array<char, 8>& symbol) {
     orderBooks.emplace(symbol, OrderBook());
 }
 
-void OrderBookManager::removeOrderBook(const char* symbol) {
+void OrderBookManager::removeOrderBook(const std::array<char, 8>& symbol) {
     orderBooks.erase(symbol);
 }
 
-OrderBook* OrderBookManager::getOrderBook(const char* symbol) {
+OrderBook* OrderBookManager::getOrderBook(const std::array<char, 8>& symbol) {
     auto it = orderBooks.find(symbol);
     if (it != orderBooks.end()) {
         return &(it->second);

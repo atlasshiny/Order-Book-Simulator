@@ -103,7 +103,7 @@ void ExchangeOrchestrator::on_order_executed(const Order& order, int price, int 
     }
 }
 
-void ExchangeOrchestrator::outputOrderBookState(const char* symbol) const {
+void ExchangeOrchestrator::outputOrderBookState(const std::array<char, 8>& symbol) const {
         OrderBook* orderBook_ = const_cast<OrderBookManager&>(orderBookManager_).getOrderBook(symbol);
 
         std::cout << "\nLevel 1 Data:" << std::endl;

@@ -5,6 +5,7 @@
 #include "orderbook/Order.hpp" 
 #include "gateways/FIXDefinition.hpp"
 #include "orderbook/IExecutionListener.hpp"
+#include <array>
 #include <memory>
 
 class TCPSession; // Forward declaration
@@ -25,7 +26,7 @@ public:
     void on_order_executed(const Order& order, int price, int quantity) override;
 
     // Output the current state of the order book in console (I/O blocking)
-    void outputOrderBookState(const char* symbol) const;
+    void outputOrderBookState(const std::array<char, 8>& symbol) const;
 
 private:
     void processOrder(std::shared_ptr<TCPSession> session, Order& order);
