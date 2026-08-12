@@ -36,6 +36,7 @@ target_compile_definitions(asio_target INTERFACE ASIO_STANDALONE)
 
 add_library(EngineCore STATIC
     src/orderbook/OrderBook.cpp
+    src/orderbook/OrderBookManager.cpp
     src/parsers/FIXParser.cpp
     src/parsers/JSONParser.cpp
     src/writers/FIXWriter.cpp
