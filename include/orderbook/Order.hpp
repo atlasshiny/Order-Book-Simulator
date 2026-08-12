@@ -39,4 +39,5 @@ struct Order {
     int clientID;
     OrderStatus status = OrderStatus::NEW; // Default status is NEW (this maps to FIX OrdStatus)
     int id; // Unique order ID assigned by the matching engine
+    char symbol[8]; // Symbol for the order, fixed size array of 8 characters
 };
