@@ -1,7 +1,6 @@
 #pragma once
-#include <array>
 #include <cstdint>
-#include <array>
+#include "orderbook/Symbol.hpp"
 
 // all special "types" needed for an order
 // order direction (BUY/SELL)
@@ -40,5 +39,5 @@ struct Order {
     int clientID;
     OrderStatus status = OrderStatus::NEW; // Default status is NEW (this maps to FIX OrdStatus)
     int id; // Unique order ID assigned by the matching engine
-    std::array<char, 8> symbol; // Symbol for the order, fixed size array of 8 characters
+    orderbook::Symbol symbol; // Symbol for the order, fixed size array of 8 characters
 };
