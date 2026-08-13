@@ -87,6 +87,12 @@ void ExchangeOrchestrator::on_order_accepted(const Order& order) {
 }
 
 void ExchangeOrchestrator::on_order_executed(const Order& order, int price, int quantity) {
+    double signed_quantity = (order.direction == OrderDirection::BUY) ? quantity : -quantity;
+    double cash_flow = -price * quantity; // Adjust based on whether cash leaves or enters on buys/sells
+
+    portfolioManager_.updateCash(order.clientID, cash_flow);
+    portfolioManager_.updatePosition(order.clientID, order.symbol, signed_quantity, price);
+
     if(!currentSession_) {
         return; // return if no session is set (like in console mode)
     }

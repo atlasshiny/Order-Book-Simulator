@@ -7,6 +7,7 @@
 #include "orderbook/IExecutionListener.hpp"
 #include "orderbook/Symbol.hpp"
 #include <memory>
+#include "portfolio/PortfolioManager.hpp"
 
 class TCPSession; // Forward declaration
 
@@ -41,4 +42,5 @@ private:
     std::unique_ptr<IGateway> gateway_; // Abstract boundary for protocol decoding
     RiskManager riskManager_; 
     OrderBookManager orderBookManager_; // Manages multiple order books for different symbols 
+    PortfolioManager portfolioManager_; // Manages the portfolios of the exchange
 };
