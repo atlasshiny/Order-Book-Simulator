@@ -136,6 +136,16 @@ std::optional<Order> FIXParser::parse(std::string_view rawData) {
                     break;
                 }
 
+                case FIX::Tags::Symbol: {
+                    // Safely copy the symbol into the fixed-size array
+                    size_t copyLen = std::min(valStr.size(), order.symbol.size());
+                    std::memcpy(order.symbol.data(), valStr.data(), copyLen);
+                    if (copyLen < order.symbol.size()) {
+                        order.symbol[copyLen] = '\0'; // Null-terminate if there's space
+                    }
+                    break;
+                }
+
                 default:
                     // Safely ignore Tag 8, Tag 9, Tag 10, etc., without failing
                     break;

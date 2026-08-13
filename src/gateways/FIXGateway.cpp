@@ -37,6 +37,7 @@ std::optional<Order> FIXGateway::receiveOrder(std::string_view rawData) {
     const Order& order = *orderOpt;
     // Here you would typically process the order (e.g., add it to the order book)
     std::cout << "Received Order - Type: " << (order.type == OrderType::LIMIT ? "LIMIT" : "MARKET")
+                << ", Symbol: " << std::string(order.symbol.data(), order.symbol.size())
                 << ", Direction: " << (order.direction == OrderDirection::BUY ? "BUY" : "SELL")
                 << ", Price: " << order.price
                 << ", Quantity: " << order.quantity
