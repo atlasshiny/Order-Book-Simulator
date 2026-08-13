@@ -10,6 +10,7 @@
 #include "gateways/FIXGateway.hpp"
 #include "writers/FIXWriter.hpp"
 #include "orchestrator/ExchangeOrchestrator.hpp"
+#include "orderbook/Symbol.hpp"
 
 int main() {
     // Instantiate the FIX gateway and orchestrator
@@ -25,10 +26,10 @@ int main() {
     while (true) {
         int price, quantity, clientID;
         uint64_t current_time;
-        std::string orderTypeStr, directionStr;
+        std::string orderTypeStr, directionStr, symbol;
 
-        std::cout << "\nEnter (LIMIT/MARKET) (BUY/SELL) Price Qty ClientID (or Ctrl+C to exit): ";
-        if (!(std::cin >> orderTypeStr >> directionStr >> price >> quantity >> clientID)) {
+        std::cout << "\nEnter (LIMIT/MARKET), (BUY/SELL), Price, Qty, ClientID, Symbol (or Ctrl+C to exit): ";
+        if (!(std::cin >> orderTypeStr >> directionStr >> price >> quantity >> clientID >> symbol)) {
             break; 
         }
 
@@ -59,7 +60,10 @@ int main() {
         ).count();
 
         // Create our local order template representing a client message
-        Order consoleOrder{orderType, direction, price, quantity, quantity, current_time, clientID};
+        // convert symbol string to fixed-size array
+        orderbook::Symbol symbolArray = orderbook::make_symbol(symbol);
+
+        Order consoleOrder{orderType, direction, price, quantity, quantity, current_time, clientID, OrderStatus::NEW, 0, symbolArray};
 
         // STEP 1: FIX WRITER SERIALIZATION (Client Sending Order)
         size_t bytesWritten = fixWriter.write(consoleOrder, wireBuffer, sizeof(wireBuffer));
