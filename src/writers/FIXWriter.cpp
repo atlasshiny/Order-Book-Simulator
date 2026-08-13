@@ -28,21 +28,21 @@ size_t FIXWriter::write(const Order& order, char* buffer, size_t bufferSize) {
         *ptr++ = '\x01';
     };
 
-    // 1. Write BeginString (Tag 8)
+    // Write BeginString (Tag 8)
     appendStringField(FIX::Tags::BeginString, "FIX.4.2");
 
-    // 2. Placeholder for BodyLength (Tag 9)
+    // Placeholder for BodyLength (Tag 9)
     char* bodyLenPos = ptr;
     const char* placeholder = "9=000\x01";
     std::memcpy(ptr, placeholder, 6);
     ptr += 6;
     bodyStart = ptr; 
 
-    // 3. MsgType (Tag 35)
+    // MsgType (Tag 35)
     // Using a string helper since MsgType is a character
     appendStringField(FIX::Tags::MsgType, "D"); 
 
-    // 4. Order fields
+    // Order fields
     appendNumericField(FIX::Tags::PRICE, order.price);
     appendNumericField(FIX::Tags::QUANTITY, order.quantity);
     appendNumericField(FIX::Tags::ClOrdID, order.clientID);
@@ -64,19 +64,19 @@ size_t FIXWriter::write(const Order& order, char* buffer, size_t bufferSize) {
         appendNumericField(FIX::Tags::SIDE, 2); // 2 for SELL
     }
 
-    // 5. Update BodyLength (Tag 9)
+    // Update BodyLength (Tag 9)
     size_t bodyLen = ptr - bodyStart;
     char temp[4];
     std::snprintf(temp, 4, "%03zu", bodyLen);
     std::memcpy(bodyLenPos + 2, temp, 3);
 
-    // 6. Calculate Checksum (Tag 10)
+    // Calculate Checksum (Tag 10)
     uint8_t checksum = 0;
     for (char* p = buffer; p < ptr; ++p) {
         checksum += static_cast<uint8_t>(*p);
     }
 
-    // 7. Append Checksum (Tag 10)
+    // Append Checksum (Tag 10)
     appendNumericField(FIX::Tags::Checksum, checksum % 256);
 
     return (ptr - buffer); // Total bytes written to buffer
@@ -157,14 +157,104 @@ size_t FIXWriter::writeExecutionReport(const Order& order, int lastShares, std::
         }
     }
 
-    // 6. Calculate Checksum (Tag 10)
+    // Calculate Checksum (Tag 10)
     uint8_t checksum = 0;
     for (char* p = buffer; p < ptr; ++p) {
         checksum += static_cast<uint8_t>(*p);
     }
 
-    // 7. Append Checksum (Tag 10)
+    // Append Checksum (Tag 10)
     appendNumericField(FIX::Tags::Checksum, checksum % 256);
 
     return (ptr - buffer); // Total bytes written to buffer
+}
+
+size_t FIXWriter::writeLogonAcknowledgment(int clientID, char* buffer, size_t bufferSize) {
+    char* ptr = buffer;
+    char* end = buffer + bufferSize;
+    char* bodyStart = nullptr;
+
+    // Helper for NUMERIC types
+    auto appendNumericField = [&](int tag, auto value) {
+        auto [p1, ec1] = std::to_chars(ptr, end, tag);
+        *p1++ = '=';
+        auto [p2, ec2] = std::to_chars(p1, end, value);
+        *p2++ = '\x01';
+        ptr = p2;
+    };
+
+    // Helper for STRING types
+    auto appendStringField = [&](int tag, std::string_view value) {
+        auto [p1, ec1] = std::to_chars(ptr, end, tag);
+        *p1++ = '=';
+        std::memcpy(p1, value.data(), value.size());
+        p1 += value.size();
+        *p1++ = '\x01';
+        ptr = p1; // Explicitly update the global tracking pointer to the absolute end
+    };
+
+    // Write BeginString (Tag 8)
+    appendStringField(FIX::Tags::BeginString, "FIX.4.2");
+
+    // Placeholder for BodyLength (Tag 9)
+    if (ptr + 6 > end) return 0;
+    char* bodyLenPos = ptr;
+    std::memcpy(ptr, "9=000\x01", 6);
+    ptr += 6;
+    bodyStart = ptr; 
+
+    // MsgType (Tag 35 = A for Logon)
+    appendStringField(FIX::Tags::MsgType, "A");
+
+    // Logon-specific fields
+    appendNumericField(FIX::Tags::SenderCompID, clientID);
+    appendNumericField(FIX::Tags::TargetCompID, 0);
+
+    // Update BodyLength (Tag 9) with exact 3-digit zero padding
+    size_t bodyLen = ptr - bodyStart;
+    if (bodyLen <= 999) {
+        if (bodyLen < 10) {
+            bodyLenPos[2] = '0';
+            bodyLenPos[3] = '0';
+            std::to_chars(bodyLenPos + 4, bodyLenPos + 5, static_cast<int>(bodyLen));
+        } else if (bodyLen < 100) {
+            bodyLenPos[2] = '0';
+            std::to_chars(bodyLenPos + 3, bodyLenPos + 5, static_cast<int>(bodyLen));
+        } else {
+            std::to_chars(bodyLenPos + 2, bodyLenPos + 5, static_cast<int>(bodyLen));
+        }
+    } else {
+        return 0; // Body too large for 3-digit fixed placeholder
+    }
+
+    // Calculate Modulo-256 Checksum over Header + Body
+    size_t msgLengthBeforeChecksum = ptr - buffer;
+    unsigned int checksum = 0;
+    for (size_t i = 0; i < msgLengthBeforeChecksum; ++i) {
+        checksum += static_cast<unsigned char>(buffer[i]);
+    }
+    checksum %= 256;
+
+    // Append Checksum (Tag 10)
+    if (ptr + 7 > end) return 0;
+    std::memcpy(ptr, "10=", 3);
+    ptr += 3;
+
+    if (checksum < 10) {
+        *ptr++ = '0';
+        *ptr++ = '0';
+        std::to_chars(ptr, ptr + 1, checksum);
+        ptr += 1;
+    } else if (checksum < 100) {
+        *ptr++ = '0';
+        std::to_chars(ptr, ptr + 2, checksum);
+        ptr += 2;
+    } else {
+        std::to_chars(ptr, ptr + 3, checksum);
+        ptr += 3;
+    }
+    *ptr++ = '\x01';
+
+    // Return total bytes written to wire buffer
+    return ptr - buffer;
 }
