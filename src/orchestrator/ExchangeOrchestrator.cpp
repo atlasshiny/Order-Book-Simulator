@@ -66,6 +66,19 @@ std::optional<Order> ExchangeOrchestrator::on_data_received(std::shared_ptr<TCPS
 
 void ExchangeOrchestrator::on_client_connect(std::shared_ptr<TCPSession> session) {
     gateway_->on_client_connect(session);
+
+    // // Create a clientID for the session
+    // int clientID = session->get_clientID();
+
+    // // Create a portfolio for the client and initialize it with starting cash
+    // portfolioManager_.addPortfolio(clientID);
+
+    // // Initialize the portfolio with starting cash
+    // const auto& portfolio = portfolioManager_.getPortfolio(clientID);
+    // if (portfolio.cash == 0.0) {
+    //     portfolioManager_.updateCash(clientID, 500000.0);
+    // }
+
 }
 
 void ExchangeOrchestrator::on_client_disconnect(std::shared_ptr<TCPSession> session) {

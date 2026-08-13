@@ -18,6 +18,9 @@ public:
     char* get_write_buffer_ptr();
     size_t get_write_buffer_size();
 
+    // get method for the clientID
+    int get_clientID();
+
 private:
     void do_read();
     void do_write();
@@ -31,4 +34,6 @@ private:
 
     std::vector<std::string> pending_writes_;
     std::shared_ptr<ExchangeOrchestrator> orchestrator_;
+
+    int clientID_ = -1; // Client ID associated with this session, initialized to -1 (invalid)
 };
