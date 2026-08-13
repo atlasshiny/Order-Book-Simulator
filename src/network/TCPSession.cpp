@@ -1,6 +1,8 @@
 #include "network/TCPSession.hpp"
+#include "parsers/FIXParser.hpp"
 #include <asio.hpp>
 #include <iostream>
+#include <cstring>
 
 TCPSession::TCPSession(asio::ip::tcp::socket socket, std::shared_ptr<ExchangeOrchestrator> orchestrator)
     : socket_(std::move(socket)), orchestrator_(std::move(orchestrator)) {}
@@ -39,13 +41,43 @@ void TCPSession::do_read() {
     socket_.async_read_some(asio::buffer(read_buffer_),
         [this, self](std::error_code ec, std::size_t length) {
             if (!ec) {
-                // Process the received data into a string_view and pass it to the orchestrator
-                std::string_view raw_data(read_buffer_.data(), length);
-                if (orchestrator_) {
-                    orchestrator_->on_data_received(self, raw_data);
+                // Guard against overflowing the accumulator (malformed/malicious client
+                // sending data with no valid message boundary)
+                if (buffer_len_ + length > buffer_.size()) {
+                    std::cerr << "[Session] Accumulator overflow - closing connection." << std::endl;
+                    close();
+                    return;
                 }
 
-                // Continue reading data
+                // Append the newly-read bytes onto whatever partial data is left over
+                std::memcpy(buffer_.data() + buffer_len_, read_buffer_.data(), length);
+                buffer_len_ += length;
+
+                // Drain as many complete FIX messages as are currently available
+                size_t consumed = 0;
+                while (true) {
+                    std::string_view accumView(buffer_.data() + consumed, buffer_len_ - consumed);
+                    size_t msgLen = FIXParser::find_message_boundary(accumView);
+
+                    if (msgLen == 0) {
+                        break; // No complete message yet - wait for more bytes
+                    }
+
+                    std::string_view oneMessage(buffer_.data() + consumed, msgLen);
+                    if (orchestrator_) {
+                        orchestrator_->on_data_received(self, oneMessage);
+                    }
+
+                    consumed += msgLen;
+                }
+
+                // Shift only the leftover partial bytes down to the front
+                if (consumed > 0) {
+                    std::memmove(buffer_.data(), buffer_.data() + consumed, buffer_len_ - consumed);
+                    buffer_len_ -= consumed;
+                }
+
+                // Continue reading more data
                 do_read();
             } else {
                 // Handle error or disconnection
