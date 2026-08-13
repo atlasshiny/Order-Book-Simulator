@@ -21,12 +21,8 @@ namespace FIX {
         constexpr int PRICE = 44;
         constexpr int QUANTITY = 38;
         constexpr int TIMESTAMP = 60;
-        constexpr int ExecType = 150;
-        constexpr int OrdStatus = 39;
-        constexpr int LeavesQty = 151;
-        constexpr int LastShares = 32;
 
-        // Execution Report fields
+        // execution Report fields
         constexpr int ExecType = 150;
         constexpr int OrdStatus = 39;
         constexpr int LeavesQty = 151;
