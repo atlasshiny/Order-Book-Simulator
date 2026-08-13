@@ -37,6 +37,7 @@ target_compile_definitions(asio_target INTERFACE ASIO_STANDALONE)
 add_library(EngineCore STATIC
     src/orderbook/OrderBook.cpp
     src/orderbook/OrderBookManager.cpp
+    src/portfolio/PortfolioManager.cpp
     src/parsers/FIXParser.cpp
     src/parsers/JSONParser.cpp
     src/writers/FIXWriter.cpp
@@ -85,6 +86,7 @@ add_executable(OrderBookTests
     tests/fix_protocol_tests.cpp
     tests/risk_check_tests.cpp
     tests/orderbook_manager_tests.cpp
+    tests/portfolio_manager_tests.cpp
 )
 
 target_link_libraries(OrderBookTests PRIVATE
