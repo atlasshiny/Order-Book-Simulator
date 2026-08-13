@@ -36,11 +36,11 @@ void TCPSession::close() {
 void TCPSession::do_read() {
     auto self(shared_from_this()); // Keep the session alive during the async operation
 
-    socket_.async_read_some(asio::buffer(buffer_),
+    socket_.async_read_some(asio::buffer(read_buffer_),
         [this, self](std::error_code ec, std::size_t length) {
             if (!ec) {
                 // Process the received data into a string_view and pass it to the orchestrator
-                std::string_view raw_data(buffer_.data(), length);
+                std::string_view raw_data(read_buffer_.data(), length);
                 if (orchestrator_) {
                     orchestrator_->on_data_received(self, raw_data);
                 }
@@ -74,10 +74,19 @@ void TCPSession::do_write() {
 
 }
 
-char* TCPSession::get_buffer_ptr() {
-    return buffer_.data();
+
+char* TCPSession::get_read_buffer_ptr() {
+    return read_buffer_.data();
 }
 
-size_t TCPSession::get_buffer_size() {
-    return buffer_.size();
+size_t TCPSession::get_read_buffer_size() {
+    return read_buffer_.size();
+}
+
+char* TCPSession::get_write_buffer_ptr() {
+    return write_buffer_.data();
+}
+
+size_t TCPSession::get_write_buffer_size() {
+    return write_buffer_.size();
 }
