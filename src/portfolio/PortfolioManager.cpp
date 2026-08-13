@@ -40,6 +40,16 @@ const Portfolio& PortfolioManager::getPortfolio(int clientID) const {
     if (it != portfolios_.end()) {
         return it->second;
     } else {
-        throw std::runtime_error("Portfolio for clientID " + std::to_string(clientID) + " not found.");
+        // Implement this exception when a portfolio for a given clientID is not found in the future
+        // throw std::runtime_error("Portfolio for clientID " + std::to_string(clientID) + " not found.");
+
+        // If the client doesn't exist yet, automatically add them and fund them
+        // This is temporary and should be replaced with proper error handling in the future
+        if (portfolios_.find(clientID) == portfolios_.end()) {
+            const_cast<PortfolioManager*>(this)->addPortfolio(clientID);
+            const_cast<PortfolioManager*>(this)->updateCash(clientID, 500000.0); // Give default starting cash
+        }
+        return portfolios_.at(clientID);
+
     }
 }
