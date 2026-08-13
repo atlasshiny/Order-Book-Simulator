@@ -1,7 +1,10 @@
 #include "gateways/FIXGateway.hpp"
 #include "parsers/FIXParser.hpp"
 #include "writers/FIXWriter.hpp"
+#include "gateways/FIXDefinition.hpp"
+#include "network/TCPSession.hpp"
 #include <iostream>
+#include <string>
 
 // Serialize and send an order to the exchange (assumes the order is already built and validated)
 size_t FIXGateway::sendOrder(const Order& order, char* wireBuffer_, size_t bufferSize) {
@@ -55,16 +58,45 @@ void FIXGateway::cancelOrder(int orderId) {
 }
 
 std::optional<Order> FIXGateway::on_data_received(std::shared_ptr<TCPSession> session, std::string_view raw_data) {
-    // Handle incoming data from the network
-    auto orderOpt = receiveOrder(raw_data);
-    if (orderOpt) {
-        // Process the order using fix_writer 
-        std::cout << "Order processed successfully." << std::endl;
-        return orderOpt;
-    } else {
-        std::cerr << "Failed to process incoming data." << std::endl;
-        return std::nullopt; // Indicate failure to process the data
+    // Inspect FIX Header
+    ParsedFIXHeader header = fixParser_.parse_header(raw_data);
+
+    // Handle Logon (35=A)
+    if (header.msgType == FIX::MsgTypes::Logon) {
+        session->set_authenticated(true);
+        session->set_clientID(header.senderCompID);
+
+        std::cout << "[FIXGateway] Client " << header.senderCompID << " authenticated via Logon (35=A).\n";
+
+        char buffer[256];
+        size_t len = fixWriter_.writeLogonAcknowledgment(header.senderCompID, buffer, sizeof(buffer));
+        session->write(std::string(buffer, len));
+
+        return std::nullopt; // Swallowed internally!
     }
+
+    // Reject Unauthenticated Messages
+    if (!session->is_authenticated()) {
+        std::cout << "[FIXGateway] Rejecting unauthenticated message.\n";
+        return std::nullopt;
+    }
+
+    // Handle Order Cancel (35=F)
+    if (header.msgType == FIX::MsgTypes::OrderCancelRequest) {
+        cancelOrder(header.origClOrdID); // Calls internal cancelOrder method
+        return std::nullopt; // Swallowed internally!
+    }
+
+    // Handle New Order Single (35=D)
+    if (header.msgType == FIX::MsgTypes::NewOrderSingle) {
+        std::optional<Order> order = fixParser_.parse(raw_data);
+        if (order) {
+            order->clientID = session->get_clientID(); // Bind authenticated clientID
+        }
+        return order; // Returned to ExchangeOrchestrator!
+    }
+
+    return std::nullopt;
 }
 
 void FIXGateway::on_client_connect(std::shared_ptr<TCPSession> session) {
