@@ -17,6 +17,9 @@ int main() {
     FIXGateway fixGateway;
     ExchangeOrchestrator engine(std::make_unique<FIXGateway>(fixGateway));
 
+    orderbook::Symbol aapl_symbol = orderbook::make_symbol("AAPL");
+    engine.addOrderBook(aapl_symbol);
+
     // Instantiate the FIX "client" writer for serialization
     FIXWriter fixWriter;
 
@@ -64,6 +67,10 @@ int main() {
         orderbook::Symbol symbolArray = orderbook::make_symbol(symbol);
 
         Order consoleOrder{orderType, direction, price, quantity, quantity, current_time, clientID, OrderStatus::NEW, 0, symbolArray};
+        
+        // Initialize the client's portfolio with starting cash
+        double starting_cash = 100000.0;
+        engine.updatePortfolioCash(clientID, starting_cash);
 
         // STEP 1: FIX WRITER SERIALIZATION (Client Sending Order)
         size_t bytesWritten = fixWriter.write(consoleOrder, wireBuffer, sizeof(wireBuffer));
