@@ -14,41 +14,45 @@ def main():
     print(f"Connecting to C++ Exchange Server at {server_ip}:{server_port}...")
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((server_ip, server_port))
-    
-    # Define our two test orders (Sell order rests, Buy order triggers a match)
-    fix_message_sell_aapl = "8=FIX.4.2\x019=61\x0135=D\x0144=20\x0138=4\x0111=8002\x0160=181433688181400\x0140=2\x0154=2\x0155=AAPL\x0110=085\x01"
-    fix_message_sell_nvda = "8=FIX.4.2\x019=61\x0135=D\x0144=20\x0138=4\x0111=8002\x0160=181433688181400\x0140=2\x0154=2\x0155=NVDA\x0110=096\x01"
 
-    fix_message_buy_aapl  = "8=FIX.4.2\x019=60\x0135=D\x0111=123\x0154=1\x0140=1\x0144=20\x0138=3\x0160=181433688181401\x0155=AAPL\x0110=030\x01"
-    fix_message_buy_nvda  = "8=FIX.4.2\x019=60\x0135=D\x0111=123\x0154=1\x0140=1\x0144=20\x0138=3\x0160=181433688181401\x0155=NVDA\x0110=041\x01"
+    # STEP 1: Counterparty (Client 1001) places resting SELL orders at $20
+    fix_counterparty_sell_aapl = "8=FIX.4.2\x019=60\x0135=D\x0111=1001\x0154=2\x0140=2\x0144=20\x0138=10\x0160=181433688181400\x0155=AAPL\x0110=032\x01"
+    fix_counterparty_sell_nvda = "8=FIX.4.2\x019=60\x0135=D\x0111=1001\x0154=2\x0140=2\x0144=20\x0138=10\x0160=181433688181400\x0155=NVDA\x0110=043\x01"
+
+    # STEP 2: Main Trader (Client 8002) BUYs at $20 to MATCH & FILL
+    fix_trader_buy_aapl = "8=FIX.4.2\x019=60\x0135=D\x0111=8002\x0154=1\x0140=2\x0144=20\x0138=10\x0160=181433688181401\x0155=AAPL\x0110=032\x01"
+    fix_trader_buy_nvda = "8=FIX.4.2\x019=60\x0135=D\x0111=8002\x0154=1\x0140=2\x0144=20\x0138=10\x0160=181433688181401\x0155=NVDA\x0110=043\x01"
+
+    # STEP 3: Main Trader (Client 8002) SELLs 4 shares
+    fix_trader_sell_aapl = "8=FIX.4.2\x019=61\x0135=D\x0111=8002\x0154=2\x0140=2\x0144=20\x0138=4\x0160=181433688181402\x0155=AAPL\x0110=087\x01"
+    fix_trader_sell_nvda = "8=FIX.4.2\x019=61\x0135=D\x0111=8002\x0154=2\x0140=2\x0144=20\x0138=4\x0160=181433688181402\x0155=NVDA\x0110=098\x01"
+
     try:
-        # Send the SELL order to build resting liquidity inside the book
-        print("\nSending Mock FIX SELL Order (Price: 20, Qty: 4)...")
-        s.sendall(fix_message_sell_aapl.encode('utf-8'))
-        s.sendall(fix_message_sell_nvda.encode('utf-8'))
+        # Seed Liquidity
+        print("\n[Step 1] Client 1001 seeding resting SELL orders (Price: $20, Qty: 10)...")
+        s.sendall(fix_counterparty_sell_aapl.encode('utf-8'))
+        s.sendall(fix_counterparty_sell_nvda.encode('utf-8'))
+        time.sleep(0.2) # Allow C++ matching engine time to process resting asks
 
-        # Immediately wait and listen for the SELL order confirmation (ExecType=0, OrdStatus=0)
-        response = s.recv(1024)
-        if response:
-            print_fix_message("[SERVER RESPONSE - SELL ACCEPTANCE]:", response)
+        # Match & Acquire Position
+        print("\n[Step 2] Client 8002 sending BUY orders to match and fill (Price: $20, Qty: 10)...")
+        s.sendall(fix_trader_buy_aapl.encode('utf-8'))
+        s.sendall(fix_trader_buy_nvda.encode('utf-8'))
+        time.sleep(0.2) # Allow C++ matching engine to execute trade and update portfolio
 
-        # Small pause to separate events visually
-        time.sleep(0.5)
+        # Sell Owned Shares
+        print("\n[Step 3] Client 8002 selling part of acquired position (Qty: 4)...")
+        s.sendall(fix_trader_sell_aapl.encode('utf-8'))
+        s.sendall(fix_trader_sell_nvda.encode('utf-8'))
 
-        # Send the aggressive BUY order to cross the book at price 20
-        print("\nSending Mock FIX BUY Order (Price: 20, Qty: 3)...")
-        s.sendall(fix_message_buy_aapl.encode('utf-8'))
-        s.sendall(fix_message_buy_nvda.encode('utf-8'))
-
-        # Read responses
-        s.settimeout(2.0) # Stop blocking if the server runs out of messages to send
-        
-        print("Listening for Execution Reports...")
+        # Read Execution Reports
+        s.settimeout(2.0)
+        print("\nListening for Server Responses / Execution Reports...")
         while True:
             response = s.recv(1024)
             if not response:
                 break
-            print_fix_message("[SERVER RESPONSE - MATCH ENGINE]:", response)
+            print_fix_message("[SERVER RESPONSE]:", response)
 
     except socket.timeout:
         print("\nFinished receiving messages (Socket timeout reached).")
