@@ -43,6 +43,14 @@ void ExchangeOrchestrator::processOrder(std::shared_ptr<TCPSession> session, Ord
     currentSession_ = nullptr;
 };
 
+void ExchangeOrchestrator::addOrderBook(const orderbook::Symbol& symbol) {
+    orderBookManager_.addOrderBook(symbol);
+}
+
+void ExchangeOrchestrator::removeOrderBook(const orderbook::Symbol& symbol) {
+    orderBookManager_.removeOrderBook(symbol);
+}
+
 std::optional<Order> ExchangeOrchestrator::on_data_received(std::shared_ptr<TCPSession> session, std::string_view raw_data) {
     std::optional<Order> order = gateway_->on_data_received(session, raw_data);
 

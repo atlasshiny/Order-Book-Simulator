@@ -25,6 +25,10 @@ public:
     void on_order_accepted(const Order& order);
     void on_order_executed(const Order& order, int price, int quantity) override;
 
+    // order book management methods
+    void addOrderBook(const orderbook::Symbol& symbol);
+    void removeOrderBook(const orderbook::Symbol& symbol);
+
     // Output the current state of the order book in console (I/O blocking)
     void outputOrderBookState(const orderbook::Symbol& symbol) const;
 
