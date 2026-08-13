@@ -160,6 +160,53 @@ std::optional<Order> FIXParser::parse(std::string_view rawData) {
     return order;
 }
 
+ParsedFIXHeader FIXParser::parse_header(std::string_view rawData) {
+    ParsedFIXHeader header;
+
+    // Search through SOH (\x01) delimited fields
+    size_t start = 0;
+    while (start < rawData.size()) {
+        size_t end = rawData.find('\x01', start);
+
+        std::string_view field = rawData.substr(start, end - start);
+        size_t eqPos = field.find('=');
+
+        if (eqPos != std::string_view::npos) {
+            std::string_view tagStr = field.substr(0, eqPos);
+            std::string_view valStr = field.substr(eqPos + 1);
+
+            int tag = 0;
+            auto [ptr, ec] = std::from_chars(tagStr.data(), tagStr.data() + tagStr.size(), tag);
+
+            if (ec == std::errc()) {
+                switch (tag) {
+                    case FIX::Tags::MsgType:
+                        if (!valStr.empty()) {
+                            header.msgType = valStr[0];
+                        }
+                        break;
+
+                    case FIX::Tags::SenderCompID:
+                        std::from_chars(valStr.data(), valStr.data() + valStr.size(), header.senderCompID);
+                        break;
+
+                    case FIX::Tags::OrigClOrdID:
+                        std::from_chars(valStr.data(), valStr.data() + valStr.size(), header.origClOrdID);
+                        break;
+
+                    default:
+                        // Ignore unneeded tags
+                        break;
+                }
+            }
+        }
+
+        start = end + 1;
+    }
+
+    return header;
+}
+
 size_t FIXParser::find_message_boundary(std::string_view buffer) {
     // Check for the presence of the SOH delimiter
     size_t sohPos = buffer.find('\x01');
