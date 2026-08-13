@@ -18,8 +18,12 @@ public:
     char* get_write_buffer_ptr();
     size_t get_write_buffer_size();
 
-    // get method for the clientID
-    int get_clientID();
+    // set and get method for the authentication status and clientID
+    void set_authenticated(bool status) { authenticated_ = status; }
+    bool is_authenticated() const { return authenticated_; }
+
+    void set_clientID(int id) { clientID_ = id; }
+    int get_clientID() const { return clientID_; }
 
 private:
     void do_read();
@@ -35,5 +39,6 @@ private:
     std::vector<std::string> pending_writes_;
     std::shared_ptr<ExchangeOrchestrator> orchestrator_;
 
+    bool authenticated_ = false; // Flag to indicate if the client is authenticated
     int clientID_ = -1; // Client ID associated with this session, initialized to -1 (invalid)
 };

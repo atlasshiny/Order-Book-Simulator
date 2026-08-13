@@ -106,7 +106,6 @@ void TCPSession::do_write() {
 
 }
 
-
 char* TCPSession::get_read_buffer_ptr() {
     return read_buffer_.data();
 }
@@ -121,8 +120,4 @@ char* TCPSession::get_write_buffer_ptr() {
 
 size_t TCPSession::get_write_buffer_size() {
     return write_buffer_.size();
-}
-
-int TCPSession::get_clientID() {
-    return clientID_;
 }
