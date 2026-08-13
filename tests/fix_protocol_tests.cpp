@@ -2,6 +2,7 @@
 #include "gateways/FIXGateway.hpp"
 #include "writers/FIXWriter.hpp"
 #include "parsers/FIXParser.hpp"
+#include "gateways/FIXDefinition.hpp"
 #include "orderbook/Order.hpp"
 #include <string>
 
@@ -63,4 +64,66 @@ TEST(FIXParserBoundaryTest, SplitsTwoConcatenatedMessagesCorrectly) {
     ASSERT_TRUE(order2.has_value());
     EXPECT_EQ(std::string_view(order1->symbol.data(), 4), "AAPL");
     EXPECT_EQ(std::string_view(order2->symbol.data(), 4), "NVDA");
+}
+
+TEST(FIXParserTest, ParseLogonHeader) {
+    FIXParser parser;
+    const char soh = '\x01';
+    std::string fixMessage = std::string("8=FIX.4.2") + soh + "9=45" + soh + "35=A" + soh + "49=1001" + soh + "56=EXCHANGE" + soh + "10=100" + soh;
+    
+    ParsedFIXHeader header = parser.parse_header(fixMessage);
+    
+    // Ensure MsgType 'A' (Logon) is correctly identified
+    EXPECT_EQ(header.msgType, FIX::MsgTypes::Logon);
+    
+    // Ensure SenderCompID is extracted natively as an integer
+    EXPECT_EQ(header.senderCompID, 1001);
+}
+
+TEST(FIXParserTest, ParseOrderCancelHeader) {
+    FIXParser parser;
+    const char soh = '\x01';
+    std::string fixMessage = std::string("8=FIX.4.2") + soh + "9=55" + soh + "35=F" + soh + "49=8002" + soh + "11=1003" + soh + "41=1002" + soh + "55=NVDA" + soh + "10=080" + soh;
+    
+    ParsedFIXHeader header = parser.parse_header(fixMessage);
+    
+    // Ensure MsgType 'F' (Order Cancel Request) is correctly identified
+    EXPECT_EQ(header.msgType, FIX::MsgTypes::OrderCancelRequest);
+    
+    // Ensure OrigClOrdID and SenderCompID are extracted
+    EXPECT_EQ(header.origClOrdID, 1002);
+    EXPECT_EQ(header.senderCompID, 8002);
+}
+
+TEST(FIXParserTest, ParseHeaderIgnoresIrrelevantTags) {
+    FIXParser parser;
+    const char soh = '\x01';
+    // Standard NewOrderSingle, header parser should only pull MsgType and SenderCompID
+    std::string fixMessage = std::string("8=FIX.4.2") + soh + "9=60" + soh + "35=D" + soh + "49=9999" + soh + "11=1001" + soh + "54=2" + soh + "40=2" + soh + "44=20" + soh + "38=10" + soh + "10=032" + soh;
+
+    ParsedFIXHeader header = parser.parse_header(fixMessage);
+    
+    EXPECT_EQ(header.msgType, FIX::MsgTypes::NewOrderSingle);
+    EXPECT_EQ(header.senderCompID, 9999);
+    // OrigClOrdID should remain its default uninitialized value (e.g., -1 or 0 depending on your struct)
+    EXPECT_EQ(header.origClOrdID, -1); 
+}
+
+TEST(FIXWriterTest, WriteLogonAcknowledgment) {
+    FIXWriter writer;
+    char buffer[256];
+    int testClientID = 4040;
+    
+    size_t bytesWritten = writer.writeLogonAcknowledgment(testClientID, buffer, sizeof(buffer));
+    
+    EXPECT_GT(bytesWritten, 0);
+    EXPECT_LT(bytesWritten, sizeof(buffer));
+    
+    std::string output(buffer, bytesWritten);
+    const char soh = '\x01';
+    
+    EXPECT_NE(output.find(std::string("35=A") + soh), std::string::npos);
+    EXPECT_NE(output.find(std::string("49=4040") + soh), std::string::npos); // SenderCompID
+    EXPECT_NE(output.find(std::string("56=0") + soh), std::string::npos);    // TargetCompID
+    EXPECT_NE(output.find("10="), std::string::npos);
 }
