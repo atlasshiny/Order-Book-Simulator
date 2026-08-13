@@ -24,7 +24,8 @@ enum class OrderType {
     LIMIT,
     MARKET,
     IOC,
-    POST_ONLY
+    POST_ONLY,
+    CANCEL
 };
 
 // the order itself, a structure holding all relevant information
