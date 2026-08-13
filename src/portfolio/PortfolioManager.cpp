@@ -35,5 +35,8 @@ void PortfolioManager::addPortfolio(int clientID) {
 }
 
 const Portfolio& PortfolioManager::getPortfolio(int clientID) const {
-    return portfolios_.at(clientID);
-}
+    auto it = portfolios_.find(clientID);
+    if (it != portfolios_.end()) {
+        return it->second;
+    }
+};
