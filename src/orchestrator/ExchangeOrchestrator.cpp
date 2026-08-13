@@ -12,8 +12,11 @@ void ExchangeOrchestrator::processOrder(std::shared_ptr<TCPSession> session, Ord
 
     orderBook_->set_listener(this); // set the listener for callback hooks
     
+    // find the specific portfolio for the client placing the order
+    const Portfolio& clientPortfolio = portfolioManager_.getPortfolio(order.clientID);
+
     // Run high-speed concrete pre-trade risk checks
-    if (!riskManager_.checkOrder(order)) {
+    if (!riskManager_.checkOrder(order, clientPortfolio)) {
         std::cout << "Order rejected by risk manager." << std::endl; // I/O blocking
         return; 
     }
