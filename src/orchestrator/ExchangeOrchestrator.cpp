@@ -54,6 +54,10 @@ void ExchangeOrchestrator::removeOrderBook(const orderbook::Symbol& symbol) {
     orderBookManager_.removeOrderBook(symbol);
 }
 
+void ExchangeOrchestrator::updatePortfolioCash(int clientID, double amount) {
+    portfolioManager_.updateCash(clientID, amount);
+}
+
 std::optional<Order> ExchangeOrchestrator::on_data_received(std::shared_ptr<TCPSession> session, std::string_view raw_data) {
     std::optional<Order> order = gateway_->on_data_received(session, raw_data);
 

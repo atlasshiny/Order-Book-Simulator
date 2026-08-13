@@ -15,7 +15,7 @@ class ExchangeOrchestrator : public IExecutionListener {
 public:
     // Constructor accepts which protocol gateway we want to use
     ExchangeOrchestrator(std::unique_ptr<IGateway> protocolGateway)
-        : gateway_(std::move(protocolGateway)), riskManager_(), orderBookManager_() {}
+        : gateway_(std::move(protocolGateway)), riskManager_(), orderBookManager_(), portfolioManager_() {}
 
     // public-facing methods from the gateway to handle incoming raw wire messages
     std::optional<Order> on_data_received(std::shared_ptr<TCPSession> session, std::string_view raw_data); 
@@ -30,6 +30,9 @@ public:
     void addOrderBook(const orderbook::Symbol& symbol);
     void removeOrderBook(const orderbook::Symbol& symbol);
 
+    // portfolio management methods
+    void updatePortfolioCash(int clientID, double amount);
+    
     // Output the current state of the order book in console (I/O blocking)
     void outputOrderBookState(const orderbook::Symbol& symbol) const;
 
