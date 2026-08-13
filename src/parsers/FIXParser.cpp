@@ -168,7 +168,7 @@ size_t FIXParser::find_message_boundary(std::string_view buffer) {
     }
 
     // Check for the presence of the checksum field (Tag 10)
-    size_t checksumPos = buffer.find(FIX::Tags::Checksum + "=", sohPos);
+    size_t checksumPos = buffer.find(std::to_string(FIX::Tags::Checksum) + "=", sohPos);
     if (checksumPos == std::string_view::npos) {
         return 0; // No complete message found
     }
