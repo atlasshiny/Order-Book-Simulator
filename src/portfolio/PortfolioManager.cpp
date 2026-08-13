@@ -48,6 +48,8 @@ const Portfolio& PortfolioManager::getPortfolio(int clientID) const {
         if (portfolios_.find(clientID) == portfolios_.end()) {
             const_cast<PortfolioManager*>(this)->addPortfolio(clientID);
             const_cast<PortfolioManager*>(this)->updateCash(clientID, 500000.0); // Give default starting cash
+            const_cast<PortfolioManager*>(this)->updatePosition(clientID, orderbook::make_symbol("AAPL"), 100.0, 20.0);
+            const_cast<PortfolioManager*>(this)->updatePosition(clientID, orderbook::make_symbol("NVDA"), 100.0, 20.0);
         }
         return portfolios_.at(clientID);
 
