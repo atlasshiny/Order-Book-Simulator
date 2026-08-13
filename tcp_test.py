@@ -16,14 +16,17 @@ def main():
     s.connect((server_ip, server_port))
     
     # Define our two test orders (Sell order rests, Buy order triggers a match)
-    fix_message_sell = "8=FIX.4.2\x019=053\x0135=D\x0144=20\x0138=4\x0111=8002\x0160=181433688181400\x0140=2\x0154=2\x0110=192\x01"
-    fix_message_buy  = "8=FIX.4.2\x019=33\x0135=D\x0111=123\x0154=1\x0140=1\x0144=20\x0138=3\x0110=171\x01"
+    fix_message_sell_aapl = "8=FIX.4.2\x019=61\x0135=D\x0144=20\x0138=4\x0111=8002\x0160=181433688181400\x0140=2\x0154=2\x0155=AAPL\x0110=085\x01"
+    fix_message_sell_nvda = "8=FIX.4.2\x019=61\x0135=D\x0144=20\x0138=4\x0111=8002\x0160=181433688181400\x0140=2\x0154=2\x0155=NVDA\x0110=096\x01"
 
+    fix_message_buy_aapl  = "8=FIX.4.2\x019=60\x0135=D\x0111=123\x0154=1\x0140=1\x0144=20\x0138=3\x0160=181433688181401\x0155=AAPL\x0110=030\x01"
+    fix_message_buy_nvda  = "8=FIX.4.2\x019=60\x0135=D\x0111=123\x0154=1\x0140=1\x0144=20\x0138=3\x0160=181433688181401\x0155=NVDA\x0110=041\x01"
     try:
         # Send the SELL order to build resting liquidity inside the book
         print("\nSending Mock FIX SELL Order (Price: 20, Qty: 4)...")
-        s.sendall(fix_message_sell.encode('utf-8'))
-        
+        s.sendall(fix_message_sell_aapl.encode('utf-8'))
+        s.sendall(fix_message_sell_nvda.encode('utf-8'))
+
         # Immediately wait and listen for the SELL order confirmation (ExecType=0, OrdStatus=0)
         response = s.recv(1024)
         if response:
@@ -34,7 +37,8 @@ def main():
 
         # Send the aggressive BUY order to cross the book at price 20
         print("\nSending Mock FIX BUY Order (Price: 20, Qty: 3)...")
-        s.sendall(fix_message_buy.encode('utf-8'))
+        s.sendall(fix_message_buy_aapl.encode('utf-8'))
+        s.sendall(fix_message_buy_nvda.encode('utf-8'))
 
         # Read responses
         s.settimeout(2.0) # Stop blocking if the server runs out of messages to send
