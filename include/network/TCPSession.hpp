@@ -25,6 +25,10 @@ private:
     asio::ip::tcp::socket socket_;
     std::array<char, 1024> read_buffer_;
     std::array<char, 1024> write_buffer_;
+
+    std::array<char, 4096> buffer_; // Buffer to hold incoming data
+    size_t buffer_len_ = 0; // Current length of data in the buffer
+
     std::vector<std::string> pending_writes_;
     std::shared_ptr<ExchangeOrchestrator> orchestrator_;
 };
