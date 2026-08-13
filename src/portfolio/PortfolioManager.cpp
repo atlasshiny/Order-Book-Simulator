@@ -1,5 +1,6 @@
 #include "portfolio/PortfolioManager.hpp"
 #include "portfolio/Portfolio.hpp"
+#include <stdexcept>
 
 void PortfolioManager::updateCash(int clientID, double amount) {
     portfolios_[clientID].cash += amount;
@@ -38,5 +39,7 @@ const Portfolio& PortfolioManager::getPortfolio(int clientID) const {
     auto it = portfolios_.find(clientID);
     if (it != portfolios_.end()) {
         return it->second;
+    } else {
+        throw std::runtime_error("Portfolio for clientID " + std::to_string(clientID) + " not found.");
     }
-};
+}
