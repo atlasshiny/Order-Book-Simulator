@@ -41,3 +41,26 @@ TEST(FIXParserTest, ParseOrder) {
     EXPECT_EQ(order.price, 150);
     EXPECT_EQ(order.quantity, 100);
 }
+
+TEST(FIXParserBoundaryTest, SplitsTwoConcatenatedMessagesCorrectly) {
+    const char soh = '\x01';
+    std::string msg1 = std::string("8=FIX.4.2") + soh + "9=61" + soh + "35=D" + soh + "44=20" + soh + "38=4" + soh + "11=8002" + soh + "60=181433688181400" + soh + "40=2" + soh + "54=2" + soh + "55=AAPL" + soh + "10=085" + soh;
+    std::string msg2 = std::string("8=FIX.4.2") + soh + "9=61" + soh + "35=D" + soh + "44=20" + soh + "38=4" + soh + "11=8002" + soh + "60=181433688181400" + soh + "40=2" + soh + "54=2" + soh + "55=NVDA" + soh + "10=096" + soh;
+    std::string combined = msg1 + msg2;
+
+    size_t firstLen = FIXParser::find_message_boundary(combined);
+    ASSERT_EQ(firstLen, msg1.size());
+
+    std::string_view remaining(combined.data() + firstLen, combined.size() - firstLen);
+    size_t secondLen = FIXParser::find_message_boundary(remaining);
+    ASSERT_EQ(secondLen, msg2.size());
+
+    // Confirm each slice parses independently and doesn't leak fields across the boundary
+    auto order1 = FIXParser().parse(std::string_view(combined.data(), firstLen));
+    auto order2 = FIXParser().parse(std::string_view(combined.data() + firstLen, secondLen));
+
+    ASSERT_TRUE(order1.has_value());
+    ASSERT_TRUE(order2.has_value());
+    EXPECT_EQ(std::string_view(order1->symbol.data(), 4), "AAPL");
+    EXPECT_EQ(std::string_view(order2->symbol.data(), 4), "NVDA");
+}
