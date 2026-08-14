@@ -61,3 +61,6 @@ coverage/
 # Visual Studio/IDE files
 *.vcxproj*
 *.sln
+
+# Custom files/folders
+/orderbook-python-sdk
