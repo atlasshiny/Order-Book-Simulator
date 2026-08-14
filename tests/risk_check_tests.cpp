@@ -74,12 +74,12 @@ TEST(RiskManagerTest, BuyOrderFailsWhenInsufficientCash) {
     Portfolio portfolio;
     portfolio.cash = 10000.0;
 
-    Order buyOrder;
+    Order buyOrder{};
+    buyOrder.type = OrderType::LIMIT;
     buyOrder.direction = OrderDirection::BUY;
-    buyOrder.quantity = 100.0; // 100 shares * $150 = $15,000
+    buyOrder.quantity = 100; // 100 shares * $150 = $15,000
+    buyOrder.price = 150.0;
     buyOrder.symbol = orderbook::make_symbol("AAPL");
-
-    double estimated_price = 150.0; 
     
     bool allowed = riskManager.checkOrder(buyOrder, portfolio);
     EXPECT_FALSE(allowed); // Portfolio only has $10,000 cash
