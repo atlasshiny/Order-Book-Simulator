@@ -77,7 +77,7 @@ TEST(OrderBookTest, CancelExistingBuyOrderRemovesFromBook) {
     book.placeLimitOrder(buy_order);
 
     testing::internal::CaptureStdout();
-    book.cancelOrder(buy_order.id);
+    book.cancelOrderAndReturn(buy_order.id);
     std::string output = testing::internal::GetCapturedStdout();
 
     EXPECT_NE(output.find("Cancelled BUY order ID"), std::string::npos);
@@ -90,7 +90,7 @@ TEST(OrderBookTest, CancelExistingSellOrderRemovesFromBook) {
     book.placeLimitOrder(sell_order);
 
     testing::internal::CaptureStdout();
-    book.cancelOrder(sell_order.id);
+    book.cancelOrderAndReturn(sell_order.id);
     std::string output = testing::internal::GetCapturedStdout();
 
     EXPECT_NE(output.find("Cancelled SELL order ID"), std::string::npos);
@@ -100,7 +100,7 @@ TEST(OrderBookTest, CancelNonexistentOrderDoesNotCrash) {
     OrderBook book;
 
     testing::internal::CaptureStdout();
-    EXPECT_NO_THROW(book.cancelOrder(9999));
+    EXPECT_NO_THROW(book.cancelOrderAndReturn(9999));
     std::string output = testing::internal::GetCapturedStdout();
 
     EXPECT_NE(output.find("not found for cancellation"), std::string::npos);
@@ -112,7 +112,7 @@ TEST(OrderBookTest, CancelledOrderDoesNotParticipateInMatching) {
     Order buy_order = CreateTestOrder(OrderType::LIMIT, OrderDirection::BUY, 100, 50, 42);
     buy_order.id = book.getNextOrderId();
     book.placeLimitOrder(buy_order);
-    book.cancelOrder(buy_order.id);
+    book.cancelOrderAndReturn(buy_order.id);
 
     Order sell_order = CreateTestOrder(OrderType::LIMIT, OrderDirection::SELL, 100, 50, 99);
     sell_order.id = book.getNextOrderId();
