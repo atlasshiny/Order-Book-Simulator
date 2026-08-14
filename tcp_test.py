@@ -34,7 +34,7 @@ def main():
 
         # Client A (1001) places resting SELL orders
         print("\n[Step 2] Client 1001 seeding resting SELL orders (Price: $20, Qty: 10)...")
-        # ClOrdID = 1001 (AAPL), ClOrdID = 1002 (NVDA)
+        # Order 1 = AAPL (Assigned internal ID = 1), Order 2 = NVDA (Assigned internal ID = 2)
         fix_sell_aapl = "8=FIX.4.2\x019=60\x0135=D\x0149=1001\x0111=1001\x0154=2\x0140=2\x0144=20\x0138=10\x0160=181433688181400\x0155=AAPL\x0110=032\x01"
         fix_sell_nvda = "8=FIX.4.2\x019=60\x0135=D\x0149=1001\x0111=1002\x0154=2\x0140=2\x0144=20\x0138=10\x0160=181433688181400\x0155=NVDA\x0110=043\x01"
         
@@ -42,9 +42,8 @@ def main():
         client_a.sendall(fix_sell_nvda.encode('utf-8'))
         time.sleep(0.2)
 
-        # Client A (1001) Cancels the NVDA Order
+        # Client A (1001) Cancels the NVDA Order using OrigClOrdID pointing to ClOrdID 1002
         print("\n[Step 3] Client 1001 canceling the NVDA order (OrigClOrdID = 1002)...")
-        # MsgType = F, OrigClOrdID = 1002
         fix_cancel_nvda = "8=FIX.4.2\x019=55\x0135=F\x0149=1001\x0111=1003\x0141=1002\x0155=NVDA\x0110=080\x01"
         client_a.sendall(fix_cancel_nvda.encode('utf-8'))
         time.sleep(0.2)
