@@ -63,7 +63,7 @@ TEST(RiskManagerTest, BuyOrderPassesWhenSufficientCash) {
     buyOrder.direction = OrderDirection::BUY;
     buyOrder.quantity = 10.0;
     buyOrder.price = 150.0;
-    buyOrder.symbol = orderbook::make_symbol("AAPL");;
+    buyOrder.symbol = orderbook::make_symbol("AAPL");
     
     bool allowed = riskManager.checkOrder(buyOrder, portfolio);
     EXPECT_TRUE(allowed);
