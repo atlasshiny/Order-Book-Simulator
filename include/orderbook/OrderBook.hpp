@@ -1,5 +1,6 @@
 #pragma once
 #include <deque>
+#include <optional>
 #include "Order.hpp"
 
 class IExecutionListener; // Forward declaration
@@ -21,7 +22,7 @@ public:
     void placeImmediateOrCancelOrder(Order& order);
     void placePostOnlyOrder(Order& order);
     void matchOrders();
-    void cancelOrder(int orderId);
+    std::optional<Order> cancelOrderAndReturn(int orderId);
     int getNextOrderId();
 
     // Market data retrieval

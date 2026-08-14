@@ -222,30 +222,37 @@ void OrderBook::matchOrders() {
     }
 }
 
-void OrderBook::cancelOrder(int orderId) {
-    // Search for the order in bid orders
-    auto bidIt = find_if(bidOrders.begin(), bidOrders.end(), [orderId](const Order& o) {
-        return o.id == orderId;
-    });
-    if (bidIt != bidOrders.end()) {
-        bidIt->status = OrderStatus::CANCELLED;
-        std::cout << "Cancelled BUY order ID " << orderId << std::endl;
-        bidOrders.erase(bidIt);
-        return;
-    }
-
+std::optional<Order> OrderBook::cancelOrderAndReturn(int orderId) {
     // Search for the order in ask orders
-    auto askIt = find_if(askOrders.begin(), askOrders.end(), [orderId](const Order& o) {
-        return o.id == orderId;
+    auto askIt = std::find_if(askOrders.begin(), askOrders.end(), [orderId](const Order& o) {
+        return o.id == orderId || o.clOrdID == orderId;
     });
+
     if (askIt != askOrders.end()) {
-        askIt->status = OrderStatus::CANCELLED;
-        std::cout << "Cancelled SELL order ID " << orderId << std::endl;
+        Order cancelledOrder = *askIt;
+        cancelledOrder.status = OrderStatus::CANCELLED;
+        std::cout << "[OrderBook] Cancelled SELL order ID: " << askIt->id 
+                  << " (ClOrdID: " << askIt->clOrdID << ")" << std::endl;
         askOrders.erase(askIt);
-        return;
+        return cancelledOrder;
     }
 
-    std::cout << "Order ID " << orderId << " not found for cancellation." << std::endl;
+    // Search for the order in bid orders
+    auto bidIt = std::find_if(bidOrders.begin(), bidOrders.end(), [orderId](const Order& o) {
+        return o.id == orderId || o.clOrdID == orderId;
+    });
+
+    if (bidIt != bidOrders.end()) {
+        Order cancelledOrder = *bidIt;
+        cancelledOrder.status = OrderStatus::CANCELLED;
+        std::cout << "[OrderBook] Cancelled BUY order ID: " << bidIt->id 
+                  << " (ClOrdID: " << bidIt->clOrdID << ")" << std::endl;
+        bidOrders.erase(bidIt);
+        return cancelledOrder;
+    }
+
+    std::cout << "[OrderBook] Order ID / ClOrdID " << orderId << " not found for cancellation." << std::endl;
+    return std::nullopt;
 }
 
 void OrderBook::level1Data() const {
