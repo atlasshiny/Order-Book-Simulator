@@ -57,6 +57,8 @@ std::optional<Order> FIXParser::parse(std::string_view rawData) {
                 case FIX::Tags::MsgType: {
                     if (valStr == "D") {
                         order.type = OrderType::LIMIT; // Assuming NewOrderSingle corresponds to a LIMIT order
+                    } else if (valStr == "F") {
+                        order.type = OrderType::CANCEL; // Assuming OrderCancelRequest corresponds to a CANCEL order
                     } else {
                         return std::nullopt; // Unsupported message type
                     }
@@ -126,23 +128,21 @@ std::optional<Order> FIXParser::parse(std::string_view rawData) {
                 }
 
                 case FIX::Tags::ClOrdID: {
-                    // Use from_chars for the client ID
-                    int parsedClientID = 0;
-                    auto res = std::from_chars(valStr.data(), valStr.data() + valStr.size(), parsedClientID);
+                    // Use from_chars for the client order ID
+                    int parsedClOrdID = 0;
+                    auto res = std::from_chars(valStr.data(), valStr.data() + valStr.size(), parsedClOrdID);
                     
                     if (res.ec == std::errc()) {
-                        order.clientID = parsedClientID;
+                        order.clOrdID = parsedClOrdID; // Now safely stores 1002 without conflict
                     }
                     break;
                 }
 
                 case FIX::Tags::Symbol: {
-                    // Safely copy the symbol into the fixed-size array
-                    size_t copyLen = std::min(valStr.size(), order.symbol.size());
+                    order.symbol.fill('\0'); // Clear array first
+                    size_t copyLen = std::min(valStr.size(), order.symbol.size() - 1);
                     std::memcpy(order.symbol.data(), valStr.data(), copyLen);
-                    if (copyLen < order.symbol.size()) {
-                        order.symbol[copyLen] = '\0'; // Null-terminate if there's space
-                    }
+                    order.symbol[copyLen] = '\0'; 
                     break;
                 }
 
@@ -153,6 +153,12 @@ std::optional<Order> FIXParser::parse(std::string_view rawData) {
         }
     }
 
+    // Handle message validation based on type
+    if (order.type == OrderType::CANCEL) {
+        return order; // Cancel messages don't have price/quantity!
+    }
+
+    // Standard validation for New Orders (35=D)
     if (order.type == OrderType::NONE || order.price <= 0 || order.quantity <= 0 || order.timestamp == 0) {
         return std::nullopt; // The message was incomplete or invalid
     }
@@ -193,6 +199,13 @@ ParsedFIXHeader FIXParser::parse_header(std::string_view rawData) {
                     case FIX::Tags::OrigClOrdID:
                         std::from_chars(valStr.data(), valStr.data() + valStr.size(), header.origClOrdID);
                         break;
+                    case FIX::Tags::Symbol: {
+                        header.symbol.fill('\0'); // Clear array first
+                        size_t copyLen = std::min(valStr.size(), header.symbol.size() - 1);
+                        std::memcpy(header.symbol.data(), valStr.data(), copyLen);
+                        header.symbol[copyLen] = '\0'; 
+                        break;
+                    }
 
                     default:
                         // Ignore unneeded tags
@@ -205,7 +218,7 @@ ParsedFIXHeader FIXParser::parse_header(std::string_view rawData) {
     }
 
     return header;
-}
+};
 
 size_t FIXParser::find_message_boundary(std::string_view buffer) {
     // Check for the presence of the SOH delimiter
@@ -228,4 +241,4 @@ size_t FIXParser::find_message_boundary(std::string_view buffer) {
 
     // Return the length of the complete message including the checksum field
     return endOfChecksum + 1; // +1 to include the SOH delimiter at the end
-}
+};

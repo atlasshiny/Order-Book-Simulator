@@ -45,7 +45,7 @@ size_t FIXWriter::write(const Order& order, char* buffer, size_t bufferSize) {
     // Order fields
     appendNumericField(FIX::Tags::PRICE, order.price);
     appendNumericField(FIX::Tags::QUANTITY, order.quantity);
-    appendNumericField(FIX::Tags::ClOrdID, order.clientID);
+    appendNumericField(FIX::Tags::ClOrdID, order.clOrdID != 0 ? order.clOrdID : order.clientID);
     appendNumericField(FIX::Tags::TIMESTAMP, order.timestamp);
     appendNumericField(FIX::Tags::OrderID, order.id);
     appendNumericField(FIX::Tags::LeavesQty, order.quantity); // LeavesQty is the remaining quantity of the order
@@ -127,7 +127,7 @@ size_t FIXWriter::writeExecutionReport(const Order& order, int lastShares, std::
     // Order fields
     appendNumericField(FIX::Tags::PRICE, order.price);
     appendNumericField(FIX::Tags::QUANTITY, order.originalQuantity);
-    appendNumericField(FIX::Tags::ClOrdID, order.clientID);
+    appendNumericField(FIX::Tags::ClOrdID, order.clOrdID != 0 ? order.clOrdID : order.clientID);
     appendNumericField(FIX::Tags::TIMESTAMP, order.timestamp);
     appendNumericField(FIX::Tags::LeavesQty, order.quantity);
     appendStringField(FIX::Tags::Symbol, std::string_view(order.symbol.data(), order.symbol.size())); 

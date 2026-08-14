@@ -6,6 +6,7 @@ struct ParsedFIXHeader {
     char msgType = '\0';
     int senderCompID = -1;
     int origClOrdID = -1;
+    orderbook::Symbol symbol{};
 };
 
 class FIXParser : public IParser {
