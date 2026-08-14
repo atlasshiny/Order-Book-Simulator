@@ -58,11 +58,41 @@ void ExchangeOrchestrator::updatePortfolioCash(int clientID, double amount) {
     portfolioManager_.updateCash(clientID, amount);
 }
 
+bool ExchangeOrchestrator::cancel_order(int orderId, const orderbook::Symbol& symbol, std::shared_ptr<TCPSession> session) {
+    currentSession_ = session;
+
+    OrderBook* book = orderBookManager_.getOrderBook(symbol);
+    
+    if (book) {
+        std::optional<Order> canceledOrder = book->cancelOrderAndReturn(orderId);
+        if (canceledOrder) {
+            std::cout << "[Orchestrator] Successfully canceled Order ID / ClOrdID: " << orderId << std::endl;
+            
+            // Notify the client via Execution Report (35=8, 150=4)
+            on_order_canceled(*canceledOrder, session);
+            outputOrderBookState(symbol);
+
+            currentSession_ = nullptr;
+            return true;
+        }
+    }
+
+    std::cout << "[Orchestrator] Cancel failed: Order ID " << orderId << " not found." << std::endl;
+    currentSession_ = nullptr;
+    return false;
+}
+
 std::optional<Order> ExchangeOrchestrator::on_data_received(std::shared_ptr<TCPSession> session, std::string_view raw_data) {
     std::optional<Order> order = gateway_->on_data_received(session, raw_data);
 
     if (order) {
-        processOrder(session, order.value());
+        if (order->type == OrderType::CANCEL) {
+            // Route to cancellation workflow
+            cancel_order(order->clOrdID, order->symbol, session);
+        } else {
+            // Route to matching engine
+            processOrder(session, order.value());
+        }
     }
 
     return order;
@@ -134,6 +164,23 @@ void ExchangeOrchestrator::on_order_executed(const Order& order, int price, int 
 
     if (bytes > 0) {
         currentSession_->write(std::string(currentSession_->get_write_buffer_ptr(), bytes));
+    }
+}
+
+void ExchangeOrchestrator::on_order_canceled(const Order& order, std::shared_ptr<TCPSession> session) {
+    auto targetSession = session ? session : currentSession_;
+    if (!targetSession) return;
+
+    std::string_view execTypeView(&FIX::ExecTypes::Canceled, 1);
+    std::string_view ordStatusView(&FIX::OrdStatuses::Canceled, 1);
+
+    char stackBuffer[256];
+    size_t bytes = gateway_->get_writer().writeExecutionReport(
+        order, 0, execTypeView, ordStatusView, stackBuffer, sizeof(stackBuffer)
+    );
+
+    if (bytes > 0) {
+        targetSession->write(std::string(stackBuffer, bytes));
     }
 }
 

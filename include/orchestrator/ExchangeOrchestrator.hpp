@@ -25,14 +25,18 @@ public:
     void on_client_disconnect(std::shared_ptr<TCPSession> session);
     void on_order_accepted(const Order& order);
     void on_order_executed(const Order& order, int price, int quantity) override;
+    void on_order_canceled(const Order& order, std::shared_ptr<TCPSession> session);
 
     // order book management methods
     void addOrderBook(const orderbook::Symbol& symbol);
     void removeOrderBook(const orderbook::Symbol& symbol);
 
+    // order cancellation method
+    bool cancel_order(int orderId, const orderbook::Symbol& symbol, std::shared_ptr<TCPSession> session);
+
     // portfolio management methods
     void updatePortfolioCash(int clientID, double amount);
-    
+
     // Output the current state of the order book in console (I/O blocking)
     void outputOrderBookState(const orderbook::Symbol& symbol) const;
 
