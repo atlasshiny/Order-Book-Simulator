@@ -40,6 +40,9 @@ public:
     // Output the current state of the order book in console (I/O blocking)
     void outputOrderBookState(const orderbook::Symbol& symbol) const;
 
+    // console mode method
+    void processConsoleOrder(Order& order);
+
 private:
     void processOrder(std::shared_ptr<TCPSession> session, Order& order);
 

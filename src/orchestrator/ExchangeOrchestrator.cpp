@@ -193,3 +193,11 @@ void ExchangeOrchestrator::outputOrderBookState(const orderbook::Symbol& symbol)
         std::cout << "\nLevel 2 Data:" << std::endl;
         orderBook_->level2Data();
 };
+
+void ExchangeOrchestrator::processConsoleOrder(Order& order) {
+    // In console mode, we don't have a session, so we set currentSession_ to nullptr
+    currentSession_ = nullptr;
+
+    // Process the order as if it came from a session
+    processOrder(nullptr, order);
+}
