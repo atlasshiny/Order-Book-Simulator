@@ -41,4 +41,5 @@ struct Order {
     OrderStatus status = OrderStatus::NEW; // Default status is NEW (this maps to FIX OrdStatus)
     int id; // Unique order ID assigned by the matching engine
     orderbook::Symbol symbol; // Symbol for the order, fixed size array of 8 characters
+    int clOrdID;
 };
