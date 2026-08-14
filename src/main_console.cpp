@@ -9,19 +9,20 @@
 #include "gateways/FIXDefinition.hpp"
 #include "gateways/FIXGateway.hpp"
 #include "writers/FIXWriter.hpp"
+#include "parsers/FIXParser.hpp" 
 #include "orchestrator/ExchangeOrchestrator.hpp"
 #include "orderbook/Symbol.hpp"
 
 int main() {
-    // Instantiate the FIX gateway and orchestrator
-    FIXGateway fixGateway;
-    ExchangeOrchestrator engine(std::make_unique<FIXGateway>(fixGateway));
+    // Instantiate the orchestrator with a cleanly allocated FIX gateway to avoid copy-constructor overhead/errors.
+    ExchangeOrchestrator engine(std::make_unique<FIXGateway>());
 
     orderbook::Symbol aapl_symbol = orderbook::make_symbol("AAPL");
     engine.addOrderBook(aapl_symbol);
 
-    // Instantiate the FIX "client" writer for serialization
+    // Instantiate the FIX "client" writer & parser for serialization/deserialization
     FIXWriter fixWriter;
+    FIXParser fixParser;
 
     // Fixed-size stack allocation for the high-performance write buffer
     char wireBuffer[1024];
@@ -62,11 +63,22 @@ int main() {
             std::chrono::high_resolution_clock::now().time_since_epoch()
         ).count();
 
-        // Create our local order template representing a client message
-        // convert symbol string to fixed-size array
+        // Convert symbol string to fixed-size array
         orderbook::Symbol symbolArray = orderbook::make_symbol(symbol);
 
-        Order consoleOrder{orderType, direction, price, quantity, quantity, current_time, clientID, OrderStatus::NEW, 0, symbolArray};
+        // Safely initialize the Order struct explicitly to avoid brace-init misalignment
+        Order consoleOrder{};
+        consoleOrder.type = orderType;
+        consoleOrder.direction = direction;
+        consoleOrder.price = price;
+        consoleOrder.quantity = quantity;
+        consoleOrder.originalQuantity = quantity;
+        consoleOrder.timestamp = current_time;
+        consoleOrder.clientID = clientID;
+        consoleOrder.clOrdID = clientID; 
+        consoleOrder.status = OrderStatus::NEW;
+        consoleOrder.id = 0;
+        consoleOrder.symbol = symbolArray;
         
         // Initialize the client's portfolio with starting cash
         double starting_cash = 100000.0;
@@ -91,12 +103,16 @@ int main() {
         }
         std::cout << "\n--------------------------------------" << std::endl;
 
-        std::optional<Order> parsedOrderOpt = engine.on_data_received(nullptr, rawWireMsg); // Simulate receiving the message in the orchestrator
+        // Parse locally for validation before routing through the orchestrator ingress path
+        std::optional<Order> parsedOrderOpt = fixParser.parse(rawWireMsg);
+        
         if (!parsedOrderOpt.has_value()) {
             std::cout << "Error: Failed to parse the wire message." << std::endl;
             continue;
         }
-        Order parsedOrder = parsedOrderOpt.value();
+
+        // Route through the public orchestrator entrypoint instead of private/internal processing APIs.
+        engine.processConsoleOrder(consoleOrder);
     }
     return 0;
 }
